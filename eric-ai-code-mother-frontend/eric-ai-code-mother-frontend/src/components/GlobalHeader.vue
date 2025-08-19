@@ -30,6 +30,11 @@
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item @click="doEditProfile">
+                    <UserOutlined />
+                    个人设置
+                  </a-menu-item>
+                  <a-menu-divider />
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
@@ -48,12 +53,17 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { LogoutOutlined } from '@ant-design/icons-vue'
+import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { userLogout } from '@/api/userController.ts'
+
+// 编辑个人信息
+const doEditProfile = () => {
+  router.push('/user/edit')
+}
 
 // 用户注销
 const doLogout = async () => {
@@ -82,23 +92,41 @@ router.afterEach((to, from, next) => {
 })
 
 // 菜单配置项
-const menuItems = ref([
+const originItems = [
   {
     key: '/',
-    label: '首页',
-    title: '首页',
+    icon: () => h(HomeOutlined),
+    label: '主页',
+    title: '主页',
   },
   {
-    key: '/about',
-    label: '关于',
-    title: '关于我们',
+    key: '/admin/userManage',
+    label: '用户管理',
+    title: '用户管理',
   },
   {
     key: 'others',
     label: h('a', { href: 'https://www.baidu.com', target: '_blank' }, '百度一波'),
     title: '百度一波',
   },
-])
+]
+
+// 过滤菜单项
+const filterMenus = (menus = [] as MenuProps['items']) => {
+  return menus?.filter((menu) => {
+    const menuKey = menu?.key as string
+    if (menuKey?.startsWith('/admin')) {
+      const loginUser = loginUserStore.loginUser
+      if (!loginUser || loginUser.userRole !== 'admin') {
+        return false
+      }
+    }
+    return true
+  })
+}
+
+// 展示在菜单的路由数组
+const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
 
 // 处理菜单点击
 const handleMenuClick: MenuProps['onClick'] = (e) => {
